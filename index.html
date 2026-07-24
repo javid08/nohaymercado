@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+        content="Gestiona tu despensa fácilmente. Registra productos y recibe alertas cuando se agoten.">
+    <title>No Hay Mercado — Control de Despensa</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">
+                <span class="logo-icon">🛒</span>
+                <div>
+                    <h1>No Hay Mercado</h1>
+                    <p class="tagline">Tu despensa bajo control</p>
+                </div>
+            </div>
+            <div class="header-stats">
+                <div class="stat-card" id="stat-total">
+                    <span class="stat-number">0</span>
+                    <span class="stat-label">Productos</span>
+                </div>
+                <div class="stat-card stat-warning" id="stat-low">
+                    <span class="stat-number">0</span>
+                    <span class="stat-label">Stock Bajo</span>
+                </div>
+                <div class="stat-card stat-danger" id="stat-out">
+                    <span class="stat-number">0</span>
+                    <span class="stat-label">Agotados</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="main">
+        <!-- Alert Banner -->
+        <section class="alert-banner hidden" id="alert-banner">
+            <div class="alert-banner-content">
+                <span class="alert-icon">⚠️</span>
+                <p id="alert-banner-text">Tienes productos que necesitan reposición</p>
+                <button class="btn-view-alerts" id="btn-view-alerts">Ver alertas</button>
+            </div>
+        </section>
+
+        <!-- Controls Bar -->
+        <section class="controls-bar">
+            <div class="search-box">
+                <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <path d="m21 21-4.35-4.35"></path>
+                </svg>
+                <input type="text" id="search-input" placeholder="Buscar producto..." autocomplete="off">
+            </div>
+            <div class="filter-group">
+                <select id="filter-category" class="filter-select">
+                    <option value="all">Todas las categorías</option>
+                    <option value="lacteos">🥛 Lácteos</option>
+                    <option value="carnes">🥩 Carnes</option>
+                    <option value="frutas">🍎 Frutas</option>
+                    <option value="verduras">🥦 Verduras</option>
+                    <option value="granos">🌾 Granos y Cereales</option>
+                    <option value="bebidas">🥤 Bebidas</option>
+                    <option value="limpieza">🧹 Limpieza</option>
+                    <option value="otros">📦 Otros</option>
+                </select>
+                <select id="filter-status" class="filter-select">
+                    <option value="all">Todos los estados</option>
+                    <option value="ok">✅ En stock</option>
+                    <option value="low">⚠️ Stock bajo</option>
+                    <option value="out">🔴 Agotado</option>
+                </select>
+                <select id="sort-order" class="filter-select">
+                    <option value="name-asc">Ordenar: Nombre A-Z</option>
+                    <option value="name-desc">Ordenar: Nombre Z-A</option>
+                    <option value="qty-desc">Cantidad ↓</option>
+                    <option value="qty-asc">Cantidad ↑</option>
+                    <option value="status">Estado</option>
+                </select>
+            </div>
+            <button class="btn-notifications" id="btn-enable-notifications" type="button">
+                🔔 Activar notificaciones
+            </button>
+            <button class="btn-add" id="btn-add-product">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <path d="M12 5v14M5 12h14"></path>
+                </svg>
+                Agregar Producto
+            </button>
+        </section>
+
+        <!-- Alerts Panel -->
+        <section class="alerts-panel hidden" id="alerts-panel">
+            <div class="alerts-header">
+                <h2>🔔 Productos que necesitan reposición</h2>
+                <button class="btn-close-alerts" id="btn-close-alerts">✕</button>
+            </div>
+            <div class="alerts-grid" id="alerts-grid">
+                <!-- Rendered by JS -->
+            </div>
+        </section>
+
+        <!-- Products Grid -->
+        <section class="products-section">
+            <div class="products-grid" id="products-grid">
+                <!-- Rendered by JS -->
+            </div>
+            <div class="empty-state hidden" id="empty-state">
+                <div class="empty-icon">📦</div>
+                <h3>Tu despensa está vacía</h3>
+                <p>Agrega tu primer producto para empezar a llevar el control</p>
+                <button class="btn-add" id="btn-add-first">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <path d="M12 5v14M5 12h14"></path>
+                    </svg>
+                    Agregar Producto
+                </button>
+            </div>
+        </section>
+    </main>
+
+    <!-- Modal -->
+    <div class="modal-overlay" id="modal-overlay">
+        <div class="modal" id="product-modal">
+            <div class="modal-header">
+                <h2 id="modal-title">Agregar Producto</h2>
+                <button class="btn-close-modal" id="btn-close-modal">✕</button>
+            </div>
+            <form id="product-form" class="modal-form">
+                <input type="hidden" id="product-id">
+                <div class="form-group">
+                    <label for="product-name">Nombre del producto</label>
+                    <input type="text" id="product-name" placeholder="Ej: Leche entera" required autocomplete="off">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="product-category">Categoría</label>
+                        <select id="product-category" required>
+                            <option value="">Seleccionar...</option>
+                            <option value="lacteos">🥛 Lácteos</option>
+                            <option value="carnes">🥩 Carnes</option>
+                            <option value="frutas">🍎 Frutas</option>
+                            <option value="verduras">🥦 Verduras</option>
+                            <option value="granos">🌾 Granos y Cereales</option>
+                            <option value="bebidas">🥤 Bebidas</option>
+                            <option value="limpieza">🧹 Limpieza</option>
+                            <option value="otros">📦 Otros</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="product-unit">Unidad</label>
+                        <select id="product-unit">
+                            <option value="unidades">Unidades</option>
+                            <option value="Libras">Libras</option>
+                            <option value="kg">Kilogramos</option>
+                            <option value="litros">Litros</option>
+                            <option value="paquetes">Paquetes</option>
+                            <option value="bolsas">Bolsas</option>
+                            <option value="latas">Latas</option>
+                            <option value="botellas">Botellas</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="product-quantity">Cantidad actual</label>
+                        <div class="quantity-input">
+                            <button type="button" class="qty-btn" data-action="decrease"
+                                data-target="product-quantity">−</button>
+                            <input type="number" id="product-quantity" min="0" step="1" value="1" required>
+                            <button type="button" class="qty-btn" data-action="increase"
+                                data-target="product-quantity">+</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="product-min">Cantidad mínima <span class="label-hint">(alerta)</span></label>
+                        <div class="quantity-input">
+                            <button type="button" class="qty-btn" data-action="decrease"
+                                data-target="product-min">−</button>
+                            <input type="number" id="product-min" min="0" step="1" value="1" required>
+                            <button type="button" class="qty-btn" data-action="increase"
+                                data-target="product-min">+</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn-cancel" id="btn-cancel-modal">Cancelar</button>
+                    <button type="submit" class="btn-save">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <path d="M20 6 9 17l-5-5"></path>
+                        </svg>
+                        Guardar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
