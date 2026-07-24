@@ -38,6 +38,10 @@
                     <span class="stat-number">0</span>
                     <span class="stat-label">Agotados</span>
                 </div>
+                <div class="stat-card stat-buy" id="stat-buy">
+                    <span class="stat-number">0</span>
+                    <span class="stat-label">Por comprar</span>
+                </div>
             </div>
         </div>
     </header>
@@ -78,6 +82,7 @@
                     <option value="ok">✅ En stock</option>
                     <option value="low">⚠️ Stock bajo</option>
                     <option value="out">🔴 Agotado</option>
+                    <option value="buy">🛒 Lista de compra</option>
                 </select>
                 <select id="sort-order" class="filter-select">
                     <option value="name-asc">Ordenar: Nombre A-Z</option>
@@ -89,6 +94,9 @@
             </div>
             <button class="btn-notifications" id="btn-enable-notifications" type="button">
                 🔔 Activar notificaciones
+            </button>
+            <button class="btn-export" id="btn-export-text" type="button">
+                📋 Exportar texto
             </button>
             <button class="btn-add" id="btn-add-product">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -191,6 +199,12 @@
                                 data-target="product-min">+</button>
                         </div>
                     </div>
+                </div>
+                <div class="form-group checkbox-group">
+                    <label for="product-buy-list">
+                        <input type="checkbox" id="product-buy-list">
+                        Agregar a lista de compra
+                    </label>
                 </div>
                 <div class="form-actions">
                     <button type="button" class="btn-cancel" id="btn-cancel-modal">Cancelar</button>

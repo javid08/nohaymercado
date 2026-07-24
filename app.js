@@ -31,6 +31,7 @@ class DespensaApp {
         this.statTotal = document.querySelector('#stat-total .stat-number');
         this.statLow = document.querySelector('#stat-low .stat-number');
         this.statOut = document.querySelector('#stat-out .stat-number');
+        this.statBuy = document.querySelector('#stat-buy .stat-number');
 
         // Alert banner
         this.alertBanner = document.getElementById('alert-banner');
@@ -48,6 +49,7 @@ class DespensaApp {
         this.filterStatus = document.getElementById('filter-status');
         this.sortOrder = document.getElementById('sort-order');
         this.btnEnableNotifications = document.getElementById('btn-enable-notifications');
+        this.btnExportText = document.getElementById('btn-export-text');
         this.btnAddProduct = document.getElementById('btn-add-product');
         this.btnAddFirst = document.getElementById('btn-add-first');
 
@@ -65,6 +67,7 @@ class DespensaApp {
         this.productUnit = document.getElementById('product-unit');
         this.productQty = document.getElementById('product-quantity');
         this.productMin = document.getElementById('product-min');
+        this.productBuyList = document.getElementById('product-buy-list');
         this.btnCloseModal = document.getElementById('btn-close-modal');
         this.btnCancelModal = document.getElementById('btn-cancel-modal');
 
@@ -94,6 +97,7 @@ class DespensaApp {
         this.filterStatus.addEventListener('change', () => this.render());
         this.sortOrder.addEventListener('change', () => this.render());
         this.btnEnableNotifications.addEventListener('click', () => this.requestNotificationPermission());
+        this.btnExportText.addEventListener('click', () => this.exportBuyListText());
 
         // Quantity +/- buttons in modal
         document.querySelectorAll('.qty-btn').forEach(btn => {
@@ -263,6 +267,7 @@ class DespensaApp {
 
     // ─── Status Helpers ──────────────────────
     getStatus(product) {
+        if (product.needed) return 'buy';
         if (product.quantity === 0) return 'out';
         if (product.quantity <= product.minQuantity) return 'low';
         return 'ok';
@@ -273,8 +278,19 @@ class DespensaApp {
             ok: '✅ En stock',
             low: '⚠️ Stock bajo',
             out: '🔴 Agotado',
+            buy: '🛒 Comprar',
         };
         return labels[status] || '';
+    }
+
+    toggleBuyStatus(id) {
+        const product = this.products.find(p => p.id === id);
+        if (!product) return;
+
+        product.needed = !product.needed;
+        this.saveProducts();
+        this.render();
+        this.showToast('success', product.needed ? `"${product.name}" agregado a la lista de compra` : `"${product.name}" removido de la lista de compra`);
     }
 
     getAlertProducts() {
@@ -296,7 +312,7 @@ class DespensaApp {
     }
     getStatusOrder(product) {
         const status = this.getStatus(product);
-        return status === 'out' ? 0 : status === 'low' ? 1 : 2;
+        return status === 'buy' ? 0 : status === 'out' ? 1 : status === 'low' ? 2 : 3;
     }
 
     getSortedProducts(products) {
@@ -340,9 +356,11 @@ class DespensaApp {
                 this.productUnit.value = product.unit;
                 this.productQty.value = product.quantity;
                 this.productMin.value = product.minQuantity;
+                this.productBuyList.checked = !!product.needed;
             }
         } else {
             this.modalTitle.textContent = 'Agregar Producto';
+            this.productBuyList.checked = false;
         }
 
         this.modalOverlay.classList.add('active');
@@ -363,6 +381,7 @@ class DespensaApp {
             unit: this.productUnit.value,
             quantity: parseInt(this.productQty.value, 10) || 0,
             minQuantity: parseInt(this.productMin.value, 10) || 0,
+            needed: this.productBuyList.checked,
         };
 
         if (!data.name) {
@@ -424,15 +443,17 @@ class DespensaApp {
         this.alertsGrid.innerHTML = alerts.map(p => {
             const status = this.getStatus(p);
             const cat = this.categories[p.category] || this.categories.otros;
+            const badgeClass = status === 'out' ? 'badge-out' : status === 'low' ? 'badge-low' : 'badge-buy';
+            const badgeLabel = status === 'out' ? 'Agotado' : status === 'low' ? 'Bajo' : 'Para comprar';
             return `
-                <div class="alert-card ${status === 'low' ? 'low' : ''}">
+                <div class="alert-card ${status === 'low' ? 'low' : status === 'buy' ? 'buy' : ''}">
                     <span class="alert-card-emoji">${cat.emoji}</span>
                     <div class="alert-card-info">
                         <h4>${this.escapeHtml(p.name)}</h4>
                         <p>${p.quantity} ${p.unit} restantes</p>
                     </div>
-                    <span class="alert-card-badge ${status === 'out' ? 'badge-out' : 'badge-low'}">
-                        ${status === 'out' ? 'Agotado' : 'Bajo'}
+                    <span class="alert-card-badge ${badgeClass}">
+                        ${badgeLabel}
                     </span>
                 </div>
             `;
@@ -454,10 +475,12 @@ class DespensaApp {
         const total = this.products.length;
         const low = this.products.filter(p => this.getStatus(p) === 'low').length;
         const out = this.products.filter(p => this.getStatus(p) === 'out').length;
+        const buy = this.products.filter(p => this.getStatus(p) === 'buy').length;
 
         this.animateNumber(this.statTotal, total);
         this.animateNumber(this.statLow, low);
         this.animateNumber(this.statOut, out);
+        this.animateNumber(this.statBuy, buy);
     }
 
     animateNumber(el, target) {
@@ -475,9 +498,11 @@ class DespensaApp {
             this.showElement(this.alertBanner);
             const outCount = alerts.filter(p => this.getStatus(p) === 'out').length;
             const lowCount = alerts.filter(p => this.getStatus(p) === 'low').length;
+            const buyCount = alerts.filter(p => this.getStatus(p) === 'buy').length;
             const parts = [];
             if (outCount > 0) parts.push(`${outCount} agotado${outCount > 1 ? 's' : ''}`);
             if (lowCount > 0) parts.push(`${lowCount} con stock bajo`);
+            if (buyCount > 0) parts.push(`${buyCount} para comprar`);
             this.alertBannerText.textContent = `¡Atención! Tienes ${parts.join(' y ')}`;
         } else {
             this.hideElement(this.alertBanner);
@@ -519,7 +544,11 @@ class DespensaApp {
             ? Math.min(100, Math.round((product.quantity / (product.minQuantity * 3)) * 100))
             : (product.quantity > 0 ? 100 : 0);
 
-        const fillClass = status === 'out' ? 'fill-out' : status === 'low' ? 'fill-low' : '';
+        const fillClass = status === 'out' ? 'fill-out' : status === 'low' || status === 'buy' ? 'fill-low' : '';
+
+        const buyButtonLabel = product.needed ? '✅ En lista' : '🛒 Comprar';
+        const buyButtonTitle = product.needed ? 'Quitar de la lista de compra' : 'Marcar para comprar';
+        const buyButtonClass = `btn-qty btn-buy${product.needed ? ' active' : ''}`;
 
         return `
             <div class="product-card status-${status}" data-id="${product.id}">
@@ -556,6 +585,9 @@ class DespensaApp {
                     <button class="btn-qty btn-minus" data-id="${product.id}" data-delta="-1" aria-label="Usar ${this.escapeHtml(product.name)}">
                         − Usar
                     </button>
+                    <button class="${buyButtonClass}" data-id="${product.id}" data-action="toggle-buy" title="${buyButtonTitle}" aria-label="${buyButtonTitle} ${this.escapeHtml(product.name)}">
+                        ${buyButtonLabel}
+                    </button>
                     <button class="btn-qty btn-plus" data-id="${product.id}" data-delta="1" aria-label="Reponer ${this.escapeHtml(product.name)}">
                         + Reponer
                     </button>
@@ -578,6 +610,10 @@ class DespensaApp {
         // Quantity change
         this.productsGrid.querySelectorAll('.btn-qty').forEach(btn => {
             btn.addEventListener('click', () => {
+                const action = btn.dataset.action;
+                if (action === 'toggle-buy') {
+                    return this.toggleBuyStatus(btn.dataset.id);
+                }
                 this.changeQuantity(btn.dataset.id, parseInt(btn.dataset.delta));
             });
         });
@@ -595,6 +631,54 @@ class DespensaApp {
         setTimeout(() => {
             if (toast.parentNode) toast.remove();
         }, 3000);
+    }
+
+    exportBuyListText() {
+        const buyProducts = this.products.filter(p => this.getStatus(p) === 'buy');
+        if (buyProducts.length === 0) {
+            this.showToast('warning', 'No hay productos en la lista de compra');
+            return;
+        }
+
+        const lines = buyProducts.map(p => `- ${p.quantity} ${p.unit} ${p.name}${p.category ? ` (${this.categories[p.category]?.label || p.category})` : ''}`);
+        const text = `Lista de compra\nFecha: ${new Date().toLocaleDateString('es-ES')}\n\n${lines.join('\n')}\n\nGenerado con No Hay Mercado`;
+
+        this.copyTextToClipboard(text)
+            .then(() => {
+                this.showToast('success', 'Lista de compra copiada al portapapeles');
+            })
+            .catch(() => {
+                this.promptExportText(text);
+            });
+    }
+
+    copyTextToClipboard(text) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            return navigator.clipboard.writeText(text);
+        }
+
+        return new Promise((resolve, reject) => {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.setAttribute('readonly', '');
+            textarea.style.position = 'absolute';
+            textarea.style.left = '-9999px';
+            document.body.appendChild(textarea);
+            textarea.select();
+
+            try {
+                const successful = document.execCommand('copy');
+                document.body.removeChild(textarea);
+                successful ? resolve() : reject();
+            } catch (err) {
+                document.body.removeChild(textarea);
+                reject(err);
+            }
+        });
+    }
+
+    promptExportText(text) {
+        window.prompt('Copia el siguiente texto para tu lista de compra:', text);
     }
 
     // ─── Utilities ───────────────────────────
